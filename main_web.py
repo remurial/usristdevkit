@@ -1,5 +1,5 @@
 import os
-
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes\
 
@@ -107,6 +107,10 @@ if __name__ == "__main__":
 
     #app.run_polling()
     port = int(os.environ.get("PORT", 10000))
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
     app.run_webhook(
         listen="0.0.0.0",
         port=port,
