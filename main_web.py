@@ -116,5 +116,5 @@ if __name__ == "__main__":
         port=port,
         secret_token=BOT_TOKEN,
         webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}",
-        secret_token=BOT_TOKEN
+      
     )
