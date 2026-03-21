@@ -1,3 +1,4 @@
+
 import os
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -97,7 +98,7 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-if __name__ == "__main__":
+async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler('start', start))
@@ -105,16 +106,18 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler('pay', pay))
     app.add_handler(CallbackQueryHandler(buttons))
 
-    #app.run_polling()
     port = int(os.environ.get("PORT", 10000))
 
-    # loop = asyncio.new_event_loop()
-    # asyncio.set_event_loop(loop)
-    
-    app.run_webhook(
+    await app.initialize()
+    await app.start()
+    await app.bot.set_webhook(f"{WEBHOOK_URL}/{BOT_TOKEN}")
+    await app.updater.start_webhook(
         listen="0.0.0.0",
         port=port,
-        secret_token=BOT_TOKEN,
         webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}",
-      
     )
+    await app.updater.idle()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
