@@ -81,18 +81,21 @@ ptb_app.add_handler(CallbackQueryHandler(buttons))
 
 @flask_app.route(f"/{bot_token}", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(), ptb_app.bot)
-    asyncio.run(ptb_app.process_update(update))
-    return "ok"
+    loop = asyncio.new_event_loop()  # ← исправление: новый event loop для каждого запроса
+    asyncio.set_event_loop(loop)
+    try:
+        update = Update.de_json(request.get_json(force=True), ptb_app.bot)
+        loop.run_until_complete(ptb_app.initialize())
+        loop.run_until_complete(ptb_app.process_update(update))
+    finally:
+        loop.close()
+    return "ok", 200
 
 @flask_app.route("/")
 def index():
-    return "Bot is running!"
+    return "Bot is running!", 200
+
 
 if __name__ == "__main__":
-    # Устанавливаем webhook при запуске
-    async def set_webhook():
-        await ptb_app.bot.set_webhook(f"{WEBHOOK_URL}/{bot_token}")
-    
-    asyncio.run(set_webhook())
-    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    port = int(os.environ.get("PORT", 10000))
+    flask_app.run(host="0.0.0.0", port=port)
