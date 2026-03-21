@@ -1,11 +1,13 @@
-
-import os
-import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from flask import Flask, request
+import asyncio
+import os
 
-BOT_TOKEN = os.environ["BOT_TOKEN"]
-WEBHOOK_URL = os.environ["WEBHOOK_URL"] 
+bot_token = os.environ.get("BOT_TOKEN")  # Токен из переменных окружения
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # URL твоего сервиса на Render
+
+flask_app = Flask(__name__)
 
 all_services_text = """Доступные услуги:
 
@@ -22,7 +24,6 @@ all_services_text = """Доступные услуги:
 Приватизация
 """
 
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("Все услуги", callback_data='10'),
@@ -30,46 +31,28 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await context.bot.send_message(
         update.effective_chat.id,
-        text="""Добро пожаловать, я могу предоставить Вам юридические услуги на выбор, по выгодной цене!
-Телефон для справок: +7 (924) 303-63-73
-Доступные команды:""",
+        text="Добро пожаловать! Я могу предоставить Вам юридические услуги.\nТелефон: +7 (924) 303-63-73",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
 
 async def all_services_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(update.effective_chat.id, all_services_text)
 
-
 async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     k1 = [[InlineKeyboardButton("Перейти к оплате", url='https://www.tinkoff.ru/rm/schenin.aleksey7/dm2yz63658')]]
-
     query = update.callback_query
     await query.answer()
 
     if query.data == "1":
-        await context.bot.send_message(update.effective_chat.id, """Стоимость услуги: 30 000 руб
-Для пополнения баланса нажмите на кнопку ниже:
-""", reply_markup=InlineKeyboardMarkup(k1))
-
+        await context.bot.send_message(update.effective_chat.id, "Стоимость услуги: 30 000 руб\n", reply_markup=InlineKeyboardMarkup(k1))
     elif query.data == "2":
-        await context.bot.send_message(update.effective_chat.id, """Стоимость услуги: 70 000 руб
-Для пополнения баланса нажмите на кнопку ниже:
-""", reply_markup=InlineKeyboardMarkup(k1))
-
+        await context.bot.send_message(update.effective_chat.id, "Стоимость услуги: 70 000 руб\n", reply_markup=InlineKeyboardMarkup(k1))
     elif query.data == "3":
-        await context.bot.send_message(update.effective_chat.id, """Стоимость услуги: 60 000 руб
-Для пополнения баланса нажмите на кнопку ниже:
-""", reply_markup=InlineKeyboardMarkup(k1))
-
+        await context.bot.send_message(update.effective_chat.id, "Стоимость услуги: 60 000 руб\n", reply_markup=InlineKeyboardMarkup(k1))
     elif query.data == "4":
-        await context.bot.send_message(update.effective_chat.id, """Стоимость услуги: 50 000 руб
-Для пополнения баланса нажмите на кнопку ниже:
-""", reply_markup=InlineKeyboardMarkup(k1))
-
+        await context.bot.send_message(update.effective_chat.id, "Стоимость услуги: 50 000 руб\n", reply_markup=InlineKeyboardMarkup(k1))
     elif query.data == "10":
         await context.bot.send_message(update.effective_chat.id, all_services_text)
-
     elif query.data == "11":
         keyboard = [
             [InlineKeyboardButton("Консультация", callback_data='1'),
@@ -77,12 +60,7 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Недвижимость", callback_data='3'),
              InlineKeyboardButton("Представительство в суде", callback_data='4')]
         ]
-        await context.bot.send_message(
-            update.effective_chat.id,
-            "Доступные услуги:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-
+        await context.bot.send_message(update.effective_chat.id, "Выберите услугу:", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
@@ -91,32 +69,30 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("Недвижимость", callback_data='3'),
          InlineKeyboardButton("Представительство в суде", callback_data='4')]
     ]
-    await context.bot.send_message(
-        update.effective_chat.id,
-        "Доступные услуги:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    await context.bot.send_message(update.effective_chat.id, "Выберите услугу:", reply_markup=InlineKeyboardMarkup(keyboard))
 
 
-async def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+# Создаём приложение один раз
+ptb_app = ApplicationBuilder().token(bot_token).build()
+ptb_app.add_handler(CommandHandler('start', start))
+ptb_app.add_handler(CommandHandler('all_services', all_services_command))
+ptb_app.add_handler(CommandHandler('pay', pay))
+ptb_app.add_handler(CallbackQueryHandler(buttons))
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("all_services", all_services_command))
-    app.add_handler(CallbackQueryHandler(buttons))
+@flask_app.route(f"/{bot_token}", methods=["POST"])
+def webhook():
+    update = Update.de_json(request.get_json(), ptb_app.bot)
+    asyncio.run(ptb_app.process_update(update))
+    return "ok"
 
-    port = int(os.environ.get("PORT", 10000))
-
-    await app.initialize()
-    await app.start()
-    await app.bot.set_webhook(f"{WEBHOOK_URL}/{BOT_TOKEN}")
-
-    # Запускаем веб-сервер
-    await app.run_webhook(
-        listen="0.0.0.0",
-        port=port,
-        webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}",
-    )
+@flask_app.route("/")
+def index():
+    return "Bot is running!"
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Устанавливаем webhook при запуске
+    async def set_webhook():
+        await ptb_app.bot.set_webhook(f"{WEBHOOK_URL}/{bot_token}")
+    
+    asyncio.run(set_webhook())
+    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
