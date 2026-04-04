@@ -1,5 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.constants import ParseMode
 from flask import Flask, request
 import asyncio
 import os
@@ -26,6 +27,22 @@ all_services_text = """Доступные услуги:
 Приватизация
 """
 
+help_text = """Команды:
+/start - начать работу с ботом
+/all_services - показать все услуги
+/pay - перейти к оплате услуги
+"""
+about_text = """<b>Специализация </b>- бизнес-медиация, в т.ч. в спорах:
+- между заказчиками и подрядчиками в сфере строительного подряда;
+- в сфере инвестиций;
+- корпоративных;
+- в делах о банкротстве;
+- между участниками перевозки грузов наземным, водным, морским и воздушным видами транспорта
+
+</b>Основная профессия, должность</b>: медиатор, юрист, судебный юрист, руководитель юридической фирмы – более 20 лет.
+
+<b>Интересы и увлечения вне профессиональной сферы деятельности</b>: книги, фильмы; яхтинг, дайвинг (море в любом виде!), горные лыжи, велосипед, походы, прогулки в лес, горы"""
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("Все услуги", callback_data='10'),
@@ -39,6 +56,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def all_services_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(update.effective_chat.id, all_services_text)
+
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(update.effective_chat.id, help_text)
+
+async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    with open('photo.png', 'rb') as file:
+        await context.bot.send_photo(update.effective_chat.id, photo=file, caption=about_text, parse_mode=ParseMode.HTML)
+    
+
 
 async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     k1 = [[InlineKeyboardButton("Перейти к оплате", url='https://www.tinkoff.ru/rm/schenin.aleksey7/dm2yz63658')]]
@@ -113,4 +139,4 @@ threading.Thread(target=keep_alive, daemon=True).start()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    flask_app.run(host="0.0.0.0", port=port)
+    flask_app.run(host="0.0.0.0", port=port)s
