@@ -108,6 +108,8 @@ ptb_app = ApplicationBuilder().token(bot_token).build()
 ptb_app.add_handler(CommandHandler('start', start))
 ptb_app.add_handler(CommandHandler('all_services', all_services_command))
 ptb_app.add_handler(CommandHandler('pay', pay))
+ptb_app.add_handler(CommandHandler('about', about))
+ptb_app.add_handler(CommandHandler('help', help))
 ptb_app.add_handler(CallbackQueryHandler(buttons))
 
 
